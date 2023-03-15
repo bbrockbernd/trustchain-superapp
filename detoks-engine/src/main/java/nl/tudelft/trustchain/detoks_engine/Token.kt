@@ -14,5 +14,4 @@ data class Token(
     val sender: PublicKey,
 
     // Public Key of the recipient
-    val recipient: PublicKey,
 )
