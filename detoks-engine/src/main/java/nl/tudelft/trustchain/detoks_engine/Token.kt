@@ -1,6 +1,7 @@
 package nl.tudelft.trustchain.detoks
 
 import nl.tudelft.ipv8.keyvault.PublicKey
+import java.security.PublicKey
 
 data class Token(
 
@@ -14,5 +15,5 @@ data class Token(
     val sender: PublicKey,
 
     // Public Key of the recipient
-    val recipient: PublicKey,
+    val recipient: PublicKey
 )
