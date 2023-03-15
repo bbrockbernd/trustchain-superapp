@@ -1,7 +1,5 @@
 package nl.tudelft.trustchain.detoks
-
 import nl.tudelft.ipv8.keyvault.PublicKey
-import java.security.PublicKey
 
 data class Token(
 
