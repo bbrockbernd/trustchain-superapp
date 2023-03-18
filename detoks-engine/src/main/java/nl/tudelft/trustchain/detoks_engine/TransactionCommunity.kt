@@ -15,6 +15,7 @@ class TransactionCommunity: Community() {
 
     init {
         messageHandlers[MESSAGE_ID] = ::onMessage
+        messageHandlers[MessageId.Ack] = ::onAck
     }
 
     fun setHandler(onMsg: (msg: String) -> Unit) {
@@ -27,9 +28,18 @@ class TransactionCommunity: Community() {
         handler("DemoCommunity, ${peer.mid} : ${payload.message}")
     }
 
+    private fun onAck(packet: Packet) {
+        val (peer, payload) = packet.getAuthPayload(TestMessage.Deserializer)
+        logger.debug("Ack", peer.mid + ": " + payload.message)
+    }
+
     fun send(peer: Peer, token: String) {
         val packet = serializePacket(MESSAGE_ID, TestMessage(token))
         send(peer.address, packet)
+    }
+
+    fun sendAck(peer: Peer) {
+//        val packet = serializePacket(MESSAGE_ID, TestMessage(token))
     }
 
     fun broadcastGreeting() {
@@ -40,5 +50,10 @@ class TransactionCommunity: Community() {
             )
             send(peer.address, packet)
         }
+    }
+
+    object MessageId {
+        const val Test_Message = 1
+        const val Ack = 1
     }
 }
