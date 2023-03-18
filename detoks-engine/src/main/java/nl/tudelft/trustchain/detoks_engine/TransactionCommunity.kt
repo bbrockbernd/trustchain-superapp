@@ -6,7 +6,6 @@ import nl.tudelft.ipv8.Community
 import nl.tudelft.ipv8.Peer
 import nl.tudelft.ipv8.messaging.Packet
 
-private const val MESSAGE_ID = 1
 private val logger = KotlinLogging.logger {}
 
 class TransactionCommunity: Community() {
@@ -14,7 +13,7 @@ class TransactionCommunity: Community() {
     private var handler: (msg: String) -> Unit = logger::debug
 
     init {
-        messageHandlers[MESSAGE_ID] = ::onMessage
+        messageHandlers[MessageId.Test_Message] = ::onMessage
         messageHandlers[MessageId.Ack] = ::onAck
     }
 
@@ -24,24 +23,24 @@ class TransactionCommunity: Community() {
 
     private fun onMessage(packet: Packet) {
         val (peer, payload) = packet.getAuthPayload(TestMessage.Deserializer)
-        logger.debug("DemoCommunity, ${peer.mid}", peer.mid + ": " + payload.message)
+        logger.debug("Message received, ${peer.mid}", peer.mid + ": " + payload.message)
         handler("DemoCommunity, ${peer.mid} : ${payload.message}")
         sendAck(peer)
     }
 
     private fun onAck(packet: Packet) {
         val (peer, payload) = packet.getAuthPayload(TestMessage.Deserializer)
-        logger.debug("Ack", peer.mid + ": " + payload.message)
+        logger.debug("Ack, ${peer.mid}", peer.mid + ": " + payload.message)
     }
 
     fun send(peer: Peer, token: String) {
-        val packet = serializePacket(MESSAGE_ID, TestMessage(token))
+        val packet = serializePacket(MessageId.Test_Message, TestMessage(token))
         logger.debug("Send")
         send(peer.address, packet)
     }
 
     private fun sendAck(peer: Peer) {
-        val packet = serializePacket(MESSAGE_ID, TestMessage("not received"))
+        val packet = serializePacket(MessageId.Ack, TestMessage("not received"))
         logger.debug("Send ack")
         send(peer.address, packet)
     }
@@ -49,7 +48,7 @@ class TransactionCommunity: Community() {
     fun broadcastGreeting() {
         for (peer in getPeers()) {
             val packet = serializePacket(
-                MESSAGE_ID,
+                MessageId.Test_Message,
                 TestMessage("Hello!")
             )
             send(peer.address, packet)
@@ -58,6 +57,6 @@ class TransactionCommunity: Community() {
 
     object MessageId {
         const val Test_Message = 1
-        const val Ack = 1
+        const val Ack = 2
     }
 }
