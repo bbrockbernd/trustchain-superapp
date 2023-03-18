@@ -24,8 +24,9 @@ class TransactionCommunity: Community() {
 
     private fun onMessage(packet: Packet) {
         val (peer, payload) = packet.getAuthPayload(TestMessage.Deserializer)
-        logger.debug("DemoCommunity", peer.mid + ": " + payload.message)
+        logger.debug("DemoCommunity, ${peer.mid}", peer.mid + ": " + payload.message)
         handler("DemoCommunity, ${peer.mid} : ${payload.message}")
+        sendAck(peer)
     }
 
     private fun onAck(packet: Packet) {
@@ -35,11 +36,14 @@ class TransactionCommunity: Community() {
 
     fun send(peer: Peer, token: String) {
         val packet = serializePacket(MESSAGE_ID, TestMessage(token))
+        logger.debug("Send")
         send(peer.address, packet)
     }
 
-    fun sendAck(peer: Peer) {
-//        val packet = serializePacket(MESSAGE_ID, TestMessage(token))
+    private fun sendAck(peer: Peer) {
+        val packet = serializePacket(MESSAGE_ID, TestMessage("not received"))
+        logger.debug("Send ack")
+        send(peer.address, packet)
     }
 
     fun broadcastGreeting() {
