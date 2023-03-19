@@ -39,6 +39,7 @@ class TransactionCommunity: Community() {
 
     fun send(peer: Peer, token: String) {
         val packet = serializePacket(MessageId.Test_Message, TestMessage(token))
+        logger.debug("Token, ${token}")
         tokensSend.add(token);
         logger.debug("Send")
         send(peer.address, packet)
