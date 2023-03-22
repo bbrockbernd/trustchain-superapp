@@ -6,6 +6,8 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import nl.tudelft.ipv8.Peer
 import nl.tudelft.ipv8.android.IPv8Android
 import nl.tudelft.trustchain.detoks_engine.R
@@ -36,6 +38,7 @@ class TokenManageActivity: AppCompatActivity(R.layout.token_manage) {
         findViewById<Button>(R.id.send_button).setOnClickListener { _ -> send() }
         findViewById<Button>(R.id.generate_button).setOnClickListener { _ -> generate() }
         findViewById<Button>(R.id.delete_button).setOnClickListener{ _ -> delete()}
+        findViewById<Button>(R.id.mass_send_button).setOnClickListener{ _ -> massSend(10)}
 
 
         tokenStore = TokenStore.getInstance(this)
@@ -115,6 +118,14 @@ class TokenManageActivity: AppCompatActivity(R.layout.token_manage) {
         transactionCommunity.send(peerData[selectedPeerIndex], token)
         selectedTokenIndex = RecyclerView.NO_POSITION
         tokenAdapter.removeAt(tokenIndex)
+    }
+
+    fun massSend(amount: Int) = runBlocking {
+        repeat(amount) {
+            launch {
+                transactionCommunity.send(peerData[selectedPeerIndex], ":)")
+            }
+        }
     }
 
 }
