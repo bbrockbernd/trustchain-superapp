@@ -80,7 +80,7 @@ class TorrentPayload(Serializable):
 
 
 class TransactionCommunity(Community):
-    community_id = bytes.fromhex("c86a7db45eb3563ae047639817baec4db2bc7c25")
+    community_id = bytes.fromhex("02315685d1932a144279f8248fc3db5899c5df8c")
 
     def started(self):
         self.torrent_list = os.listdir("torrents/")
@@ -113,8 +113,8 @@ async def start_nodes(num_nodes):
         builder.add_overlay(
             "TransactionCommunity",
             node_name,
-            [WalkerDefinition(Strategy.RandomWalk, 3, {"timeout": 20})],
-            bootstrapper,
+            [WalkerDefinition(Strategy.RandomWalk, 10, {"timeout": 20})],
+            default_bootstrap_defs,
             {},
             [("started",)],
         )
