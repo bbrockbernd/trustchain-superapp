@@ -116,7 +116,7 @@ async def start_nodes(num_nodes):
             "TransactionCommunity",
             node_name,
             [WalkerDefinition(Strategy.RandomWalk, 10, {"timeout": 20})],
-            [BootstrapperDefinition(Bootstrapper.UDPBroadcastBootstrapper, {})],
+            bootstrapper,
             {},
             [("started",)],
         )
