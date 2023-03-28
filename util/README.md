@@ -19,5 +19,5 @@ There is a chance you get an error for not installing Libsodium if this is the c
 ## Run
 The following code is to run 3 dummy nodes
 ```bash
-python communitysim.py 3
+python community.py 3
 ```
