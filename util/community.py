@@ -39,6 +39,8 @@ bootstrap_config = {
             ("131.180.27.188", 1337),
             ("131.180.27.187", 1337),
             ("131.180.27.161", 6427),
+            ("86.92.219.31", 6621),
+            ("86.92.219.31", 6622),
         ],
         "dns_addresses": [
             ("dispersy1.tribler.org", 6421),
@@ -114,7 +116,7 @@ async def start_nodes(num_nodes):
             "TransactionCommunity",
             node_name,
             [WalkerDefinition(Strategy.RandomWalk, 10, {"timeout": 20})],
-            default_bootstrap_defs,
+            [BootstrapperDefinition(Bootstrapper.UDPBroadcastBootstrapper, {})],
             {},
             [("started",)],
         )
