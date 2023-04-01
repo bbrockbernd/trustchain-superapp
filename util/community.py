@@ -2,8 +2,10 @@ import os
 import sys
 import random
 from asyncio import ensure_future, get_event_loop
+from dataclasses import dataclass
 from torrentool.api import Torrent
 
+from pyipv8.ipv8.lazy_community import lazy_wrapper
 from pyipv8.ipv8.community import Community
 from pyipv8.ipv8.messaging.serialization import Serializable
 from pyipv8.ipv8.configuration import (
@@ -14,8 +16,10 @@ from pyipv8.ipv8.configuration import (
     BootstrapperDefinition,
     Bootstrapper,
 )
-
+from pyipv8.ipv8.messaging.payload_dataclass import overwrite_dataclass
 from pyipv8.ipv8_service import IPv8
+
+dataclass = overwrite_dataclass(dataclass)
 
 MESSAGE_TORRENT_ID = 1
 
@@ -41,6 +45,8 @@ bootstrap_config = {
             ("131.180.27.161", 6427),
             ("86.92.219.31", 6621),
             ("86.92.219.31", 6622),
+            ('192.168.1.100', 12345),
+            ("86.92.219.31", 8001)
         ],
         "dns_addresses": [
             ("dispersy1.tribler.org", 6421),
@@ -68,6 +74,20 @@ bootstrapper = [
     BootstrapperDefinition(Bootstrapper.DispersyBootstrapper, bootstrap_config["init"])
 ]
 
+@dataclass(msg_id=1)  # The (byte) value 1 identifies this message and must be unique per community
+class MyMessage:
+    clock: int  # We add an integer (technically a "long long") field "clock" to this message
+
+class MyCommunityMessage(Serializable):
+    def __init__(self, message):
+        self.message = message
+
+    def to_pack_list(self):
+        return [("Q", 1), ("raw", self.message)]
+
+    @classmethod
+    def from_unpack_list(cls, *args):
+        return cls(*args)
 
 class TorrentPayload(Serializable):
     def __init__(self, message):
@@ -87,12 +107,23 @@ class TransactionCommunity(Community):
     def started(self):
         self.torrent_list = os.listdir("torrents/")
 
-        async def print_peers():
+        # async def print_peers():
+        #     print(
+        #         "I am:", self.my_peer, "\nI know:", [str(p) for p in self.get_peers()]
+        #     )
+        #     self.send_message_to_peers(MyCommunityMessage(b"Hello, world!"))
+
+        async def send_message_to_peers():
             print(
                 "I am:", self.my_peer, "\nI know:", [str(p) for p in self.get_peers()]
             )
+            for peer in self.get_peers():
+                self.ez_send(peer, MyMessage(1))
 
-        self.register_task("print_peers", print_peers, interval=5.0, delay=0)
+
+        # self.register_task("print_peers", print_peers, interval=5.0, delay=0)
+
+        self.register_task("send_message_to_peers", send_message_to_peers, interval=5.0, delay=0)
 
         self.add_message_handler(1, self.on_message)
 
@@ -101,7 +132,7 @@ class TransactionCommunity(Community):
         print("The message includes the first payload:\n", payload)
 
 
-async def start_nodes(num_nodes):
+async def start_nodes(num_nodes: int, timeout=20, max_peers=3):
     if not os.path.exists("keys/"):
         os.mkdir("keys/")
 
@@ -111,12 +142,12 @@ async def start_nodes(num_nodes):
     for i in range(num_nodes):
         node_name = f"dummy_peer_{i}"
         builder = ConfigBuilder()
-        builder.add_key(node_name, "medium", f"keys/ec{i}.pem")
+        builder.add_key(node_name, "medium", f"ec{i}.pem")
         builder.add_overlay(
             "TransactionCommunity",
             node_name,
-            [WalkerDefinition(Strategy.RandomWalk, 10, {"timeout": 20})],
-            bootstrapper,
+            [WalkerDefinition(Strategy.RandomWalk, max_peers, {"timeout": timeout})],
+            default_bootstrap_defs,
             {},
             [("started",)],
         )
@@ -127,11 +158,9 @@ async def start_nodes(num_nodes):
 
 
 if __name__ == "__main__":
-    try:
-        num_nodes = int(sys.argv[1])
-    except:
-        print("Please provide a number of nodes to spawn")
-        exit(1)
+    NUM_NODES = int(os.getenv("NUM_NODES"))
+    TIMEOUT = int(os.getenv("TIMEOUT"))
+    MAX_NUM_PEERS = int(os.getenv("MAX_NUM_PEERS"))
 
-    ensure_future(start_nodes(num_nodes))
+    ensure_future(start_nodes(NUM_NODES, TIMEOUT, MAX_NUM_PEERS))
     get_event_loop().run_forever()

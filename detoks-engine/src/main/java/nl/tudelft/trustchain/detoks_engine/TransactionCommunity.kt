@@ -22,6 +22,7 @@ class TransactionCommunity: Community() {
     }
 
     private fun onMessage(packet: Packet) {
+        logger.debug("Received ${getPeers()} ${packet}")
         val (peer, payload) = packet.getAuthPayload(TestMessage.Deserializer)
         logger.debug("DemoCommunity", peer.mid + ": " + payload.message)
         handler("DemoCommunity, ${peer.mid} : ${payload.message}")
