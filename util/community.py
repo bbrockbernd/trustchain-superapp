@@ -89,24 +89,10 @@ class MyCommunityMessage(Serializable):
     def from_unpack_list(cls, *args):
         return cls(*args)
 
-class TorrentPayload(Serializable):
-    def __init__(self, message):
-        self.message = message
-
-    def to_pack_list(self):
-        return [("20s", self.message.encode())]
-
-    @classmethod
-    def from_unpack_list(cls, *args):
-        return cls(*args)
-
-
 class TransactionCommunity(Community):
     community_id = bytes.fromhex("02315685d1932a144279f8248fc3db5899c5df8c")
 
     def started(self):
-        self.torrent_list = os.listdir("torrents/")
-
         # async def print_peers():
         #     print(
         #         "I am:", self.my_peer, "\nI know:", [str(p) for p in self.get_peers()]
@@ -136,9 +122,6 @@ async def start_nodes(num_nodes: int, timeout=20, max_peers=3):
     if not os.path.exists("keys/"):
         os.mkdir("keys/")
 
-    if not os.path.exists("torrents/"):
-        os.mkdir("torrents/")
-
     for i in range(num_nodes):
         node_name = f"dummy_peer_{i}"
         builder = ConfigBuilder()
@@ -147,7 +130,7 @@ async def start_nodes(num_nodes: int, timeout=20, max_peers=3):
             "TransactionCommunity",
             node_name,
             [WalkerDefinition(Strategy.RandomWalk, max_peers, {"timeout": timeout})],
-            default_bootstrap_defs,
+            bootstrapper,
             {},
             [("started",)],
         )
