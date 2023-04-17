@@ -32,6 +32,7 @@ class TokenBenchmarkActivity : AppCompatActivity(R.layout.token_benchmark) {
     private var packetsLost: Double = 100.00
     private var throughput: Long = 1000
     private var latency: Long = 0
+    private var averageLatency: Long = 0
 
     override fun onStart() {
         super.onStart()
@@ -63,7 +64,9 @@ class TokenBenchmarkActivity : AppCompatActivity(R.layout.token_benchmark) {
 
         val latencyCounter = findViewById<TextView>(R.id.latency)
         latency = communityAdapter.latency
-        latencyCounter.text = "Latency: ${latency}ms"
+        averageLatency = communityAdapter.averageLatency
+
+        latencyCounter.text = "Latency: ${averageLatency}ms"
 
 
         communityAdapter.setReceiveTransactionHandler {
@@ -78,11 +81,12 @@ class TokenBenchmarkActivity : AppCompatActivity(R.layout.token_benchmark) {
             packetsLost = communityAdapter.packetsLost
             throughput = communityAdapter.throughput
             latency = communityAdapter.latency
+            averageLatency = communityAdapter.averageLatency
             runOnUiThread {
                 tokenCounter.text = tokenCount.toString()
                 packetslostCounter.text = "packets received: ${packetsLost.toInt()}%"
                 throughputCounter.text = "${throughput.toInt()} tokens/second"
-                latencyCounter.text = "Latency: ${latency}ms"
+                latencyCounter.text = "Latency: ${averageLatency}ms"
             }
         }
         val myId = trustChainCommunity.myPeer.mid.substring(0, 5)

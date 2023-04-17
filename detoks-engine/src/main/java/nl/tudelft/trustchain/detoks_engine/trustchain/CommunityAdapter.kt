@@ -20,7 +20,7 @@ import kotlin.math.min
  */
 class CommunityAdapter private constructor(
     private val trustChainCommunity: TrustChainCommunity,
-    private val maxGroupBy: Int = 100,
+    private val maxGroupBy: Int = 4,
     private val flushIntervalMillis: Long = 50,
     private val resendTimeoutMillis: Long = 1000,
     private val resendLimit: Int = 0
@@ -43,6 +43,8 @@ class CommunityAdapter private constructor(
     public var throughput : Long = 1000
 
     public var latency : Long = 0
+    public var averageLatency : Long = 0
+    public var old: Long = 0
 
 
     private val bufferedTransactions = ConcurrentHashMap<Peer, ConcurrentLinkedQueue<String>>()
@@ -92,7 +94,7 @@ class CommunityAdapter private constructor(
 
     private fun handleBlock(block: TrustChainBlock) {
         packetsLost = 100*(transactionsBack.toDouble()/transactionsSend)
-        logger.debug("latency: ${latency}, lost: ${100*(transactionsBack.toDouble()/transactionsSend)} trough:${transactionsBack} send:${transactionsSend} %, Block token received: ${block.transaction}, is proposal: ${block.isProposal}, is agreement: ${block.isAgreement}, PK til 8: ${block.publicKey.toString().substring(0, 8)}, is self signed ${block.isSelfSigned}")
+        logger.debug("system: ${System.currentTimeMillis()}, old: ${old}, latency: ${latency}, lost: ${100*(transactionsBack.toDouble()/transactionsSend)} trough:${transactionsBack} send:${transactionsSend} %, Block token received: ${block.transaction}, is proposal: ${block.isProposal}, is agreement: ${block.isAgreement}, PK til 8: ${block.publicKey.toString().substring(0, 8)}, is self signed ${block.isSelfSigned}")
 
         // A proposal block for me (so i receive tokens), action is to agree
         // When selfsigned its an injection, when not selfsigned and not my PK its sent by somebody else
@@ -117,8 +119,9 @@ class CommunityAdapter private constructor(
             val numOfTokens = Transaction.fromTrustChainTransactionObject(block.transaction).tokens.size
             throughput = numOfTokens*(1000/(System.currentTimeMillis()-lastAgreementBlockReceived))
             lastAgreementBlockReceived = System.currentTimeMillis()
-            val old = Transaction.fromTrustChainTransactionObject(block.transaction).createdAt
+            old = Transaction.fromTrustChainTransactionObject(block.transaction).createdAt
             latency = System.currentTimeMillis() - old
+            averageLatency = ((averageLatency*(transactionsBack-1))+latency)/transactionsBack
 
             transmittingBlocks.remove(block.linkedBlockId)?.cancel()
             recAgreementHandler(Transaction.fromTrustChainTransactionObject(block.transaction))
@@ -159,6 +162,7 @@ class CommunityAdapter private constructor(
                     }
                     transactionsSend ++;
                     logger.debug { "Send proposal block: ${block.summarize()}" }
+
 
                     if (resendLimit > 0) {
                         val job = launch {
