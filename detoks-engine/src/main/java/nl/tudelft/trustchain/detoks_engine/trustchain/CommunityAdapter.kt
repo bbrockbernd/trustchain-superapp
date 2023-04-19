@@ -40,14 +40,19 @@ class CommunityAdapter private constructor(
     private var tokenInBlockPointer = -1
     public var tokenCount = AtomicInteger(0)
 
+    private var  packetsLostAll : ArrayList<Pair<Double, Long>> = ArrayList()
     private var transactionsSend = AtomicInteger(1)
     private var transactionsBack = AtomicInteger(1)
     public var packetsLost = 100.00
 
+    private  var throughputAll : ArrayList<Pair<Long, Long>> = ArrayList()
     private var lastAgreementBlockReceived = System.currentTimeMillis()
     public var throughput : Long = 1000
 
+    private  var latencyAll : ArrayList<Pair<Long, Long>> = ArrayList()
     public var latency : Long = 0
+    private var averageLatency: Long = 0
+    private var startingTime : Long = 0
 
 
     private val bufferedTransactions = ConcurrentHashMap<Peer, ConcurrentLinkedQueue<String>>()
@@ -94,9 +99,24 @@ class CommunityAdapter private constructor(
         startSender()
     }
 
-    private fun handleBlock(block: TrustChainBlock) {
-        logger.debug("latency: ${latency}, lost: ${100*(transactionsBack.toDouble()/transactionsSend.get())} trough:${transactionsBack} send:${transactionsSend} %, Block token received: ${block.transaction}, is proposal: ${block.isProposal}, is agreement: ${block.isAgreement}, PK til 8: ${block.publicKey.toString().substring(0, 8)}, is self signed ${block.isSelfSigned}")
+    private fun startAtZero() {
+        if(latencyAll.size == 0) {
+            return
+        }
+        val startingValueLatency = latencyAll.get(0).second
+        val startingValueThroughput = throughputAll.get(0).second
+        val startingValuePacketsLost = packetsLostAll.get(0).second
+        logger.debug("latencyAll ${latencyAll.map { it.first }} \n " +
+            "${latencyAll.map { it.second - startingValueLatency }} \n" +
+            "${throughputAll.map { it.first }} \n" +
+            "${throughputAll.map { it.second - startingValueThroughput }} \n" +
+            "${packetsLostAll.map { it.first.toInt() }} \n" +
+            "${packetsLostAll.map { it.second - startingValuePacketsLost }}")
+    }
 
+    private fun handleBlock(block: TrustChainBlock) {
+//        logger.debug("latency: ${latency}, lost: ${100*(transactionsBack.toDouble()/transactionsSend.get())} trough:${transactionsBack} send:${transactionsSend} %, Block token received: ${block.transaction}, is proposal: ${block.isProposal}, is agreement: ${block.isAgreement}, PK til 8: ${block.publicKey.toString().substring(0, 8)}, is self signed ${block.isSelfSigned}")
+//        logger.debug("latencyAll ${latencyAll.map { it.first }} ${latencyAll.map { it.second }}")
         // A proposal block for me (so i receive tokens), action is to agree
         // When selfsigned its an injection, when not selfsigned and not my PK its sent by somebody else
         if (block.isProposal && (block.isSelfSigned || !block.publicKey.contentEquals(myPublicKey))) {
@@ -120,11 +140,17 @@ class CommunityAdapter private constructor(
             val numOfTokens = Transaction.fromTrustChainTransactionObject(block.transaction).tokens.size
             throughput = numOfTokens*(1000/(System.currentTimeMillis()-lastAgreementBlockReceived))
             lastAgreementBlockReceived = System.currentTimeMillis()
+            throughputAll.add(Pair(throughput, System.currentTimeMillis()))
+
             val old = Transaction.fromTrustChainTransactionObject(block.transaction).createdAt
             latency = System.currentTimeMillis() - old
+            averageLatency = ((averageLatency*(transactionsBack.toInt()-1))+latency)/transactionsBack.toInt()
+            latencyAll.add(Pair(averageLatency, System.currentTimeMillis()))
 
             transmittingBlocks.remove(block.linkedBlockId)?.cancel()
             packetsLost = 100*(transactionsBack.toDouble()/transactionsSend.toDouble())
+            packetsLostAll.add(Pair(packetsLost, System.currentTimeMillis()))
+            startAtZero()
             recAgreementHandler(Transaction.fromTrustChainTransactionObject(block.transaction))
         }
     }
